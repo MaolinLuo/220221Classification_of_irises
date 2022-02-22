@@ -137,7 +137,7 @@ if __name__ == '__main__':
     data_iter = load_array((X_train, y_train), batch_size)
     test_iter = load_array((X_test, y_test), batch_size)
     """定义模型"""
-    # net = nn.Sequential(nn.Linear(4, 3))
+    # net = nn.Sequential(nn.Linear(4, 3))  # 结果见mynet_1.png
     net = nn.Sequential(nn.Linear(4, 10),
                         nn.ReLU(),
                         nn.Linear(10, 3))
