@@ -124,4 +124,7 @@ if __name__ == '__main__':
     num_epochs = 100
     train(net, data_iter, test_iter, loss, num_epochs, trainer)
 
+    """存储模型参数"""
+    torch.save(net.state_dict(), 'MyNet2.params')
+
     plt.show()
