@@ -1,54 +1,11 @@
 import numpy as np
-from d2l.torch import d2l, Accumulator
+from d2l.torch import d2l, Accumulator, Animator
 from matplotlib import pyplot as plt
 from numpy import genfromtxt
 import torch
 from sklearn.model_selection import train_test_split
 from torch.utils import data
 from torch import nn
-from IPython import display
-
-
-class Animator:
-    """For plotting data in animation."""
-    def __init__(self, xlabel=None, ylabel=None, legend=None, xlim=None,
-                 ylim=None, xscale='linear', yscale='linear',
-                 fmts=('-', 'm--', 'g-.', 'r:'), nrows=1, ncols=1,
-                 figsize=(3.5, 2.5)):
-        """Defined in :numref:`sec_softmax_scratch`"""
-        # Incrementally plot multiple lines
-        if legend is None:
-            legend = []
-        d2l.use_svg_display()
-        self.fig, self.axes = d2l.plt.subplots(nrows, ncols, figsize=figsize)
-        if nrows * ncols == 1:
-            self.axes = [self.axes, ]
-        # Use a lambda function to capture arguments
-        self.config_axes = lambda: d2l.set_axes(
-            self.axes[0], xlabel, ylabel, xlim, ylim, xscale, yscale, legend)
-        self.X, self.Y, self.fmts = None, None, fmts
-
-    def add(self, x, y):
-        # Add multiple data points into the figure
-        if not hasattr(y, "__len__"):
-            y = [y]
-        n = len(y)
-        if not hasattr(x, "__len__"):
-            x = [x] * n
-        if not self.X:
-            self.X = [[] for _ in range(n)]
-        if not self.Y:
-            self.Y = [[] for _ in range(n)]
-        for i, (a, b) in enumerate(zip(x, y)):
-            if a is not None and b is not None:
-                self.X[i].append(a)
-                self.Y[i].append(b)
-        self.axes[0].cla()
-        for x, y, fmt in zip(self.X, self.Y, self.fmts):
-            self.axes[0].plot(x, y, fmt)
-        self.config_axes()
-        display.display(self.fig)
-        display.clear_output(wait=True)
 
 
 def load_array(data_arrays, batch_size, is_train=True):
@@ -60,7 +17,7 @@ def load_array(data_arrays, batch_size, is_train=True):
 
 def accuracy(y_hat, y):
     if len(y_hat.shape) > 1 and y_hat.shape[1] > 1:
-        y_hat = d2l.argmax(y_hat, axis=1)   # 计算出每一行概率最大的索引作为预测值
+        y_hat = d2l.argmax(y_hat, axis=1)  # 计算出每一行概率最大的索引作为预测值
     cmp = d2l.astype(y_hat, y.dtype) == y
     return float(d2l.reduce_sum(d2l.astype(cmp, y.dtype)))
 
@@ -101,7 +58,7 @@ def train_epoch(net, train_iter, loss, updater):
 
 
 def train(net, train_iter, test_iter, loss, num_epochs, updater):
-    animator = Animator(xlabel='epoch', xlim=[1, num_epochs], ylim=[0.1, 1.2],
+    animator = Animator(xlabel='epoch', xlim=[1, num_epochs], ylim=[0.1, 1.0],
                         legend=['train loss', 'train acc', 'test acc'])
     for epoch in range(num_epochs):
         train_metrics = train_epoch(net, train_iter, loss, updater)
@@ -112,6 +69,26 @@ def train(net, train_iter, test_iter, loss, num_epochs, updater):
     # assert train_loss < 0.5, train_loss
     # assert train_acc <= 1 and train_acc > 0.7, train_acc
     # assert test_acc <= 1 and test_acc > 0.7, test_acc
+
+
+class MyNet1(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(4, 3))
+
+    def forward(self, X):
+        return self.net(X)
+
+
+class MyNet2(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(4, 10),
+                                 nn.ReLU(),
+                                 nn.Linear(10, 3))
+
+    def forward(self, X):
+        return self.net(X)
 
 
 if __name__ == '__main__':
@@ -128,7 +105,7 @@ if __name__ == '__main__':
     y = torch.from_numpy(y)
     y.reshape(-1, 1)
     # print(dataset[:10])
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)   # 划分数据集
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)  # 划分数据集
     train_data = data.TensorDataset(X_train, y_train)
     test_data = data.TensorDataset(X_test, y_test)
     # print(train_data[:10])
@@ -137,10 +114,8 @@ if __name__ == '__main__':
     data_iter = load_array((X_train, y_train), batch_size)
     test_iter = load_array((X_test, y_test), batch_size)
     """定义模型"""
-    # net = nn.Sequential(nn.Linear(4, 3))  # 结果见mynet_1.png
-    net = nn.Sequential(nn.Linear(4, 10),
-                        nn.ReLU(),
-                        nn.Linear(10, 3))
+    # net = MyNet1()    # acc约为0.900
+    net = MyNet2()      # acc约为0.967
     """定义损失函数"""
     loss = nn.CrossEntropyLoss(reduction='none')
     """定义优化算法"""
@@ -150,5 +125,3 @@ if __name__ == '__main__':
     train(net, data_iter, test_iter, loss, num_epochs, trainer)
 
     plt.show()
-
-
